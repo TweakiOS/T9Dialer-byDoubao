@@ -1,3 +1,10 @@
+//
+//  ViewController.swift
+//  Fido
+//
+//  Created by TweakiOS on 4/6/25.
+//
+
 import UIKit
 import Contacts
 import ContactsUI
@@ -5,7 +12,7 @@ import Foundation
 import MessageUI
 import PhoneNumberKit
 
-// 定义一个结构体来缓存联系人的相关信息
+// Define a structure to cache relevant information of contacts
 struct ContactCache {
     let pinyin: String
     let t9: String
@@ -212,7 +219,7 @@ class ContactCell: UITableViewCell {
 
 class ViewController: UIViewController, UICollectionViewDataSource, UICollectionViewDelegate, UICollectionViewDelegateFlowLayout, UITableViewDataSource, UITableViewDelegate, ContactCellDelegate {
 
-    // 定义键盘按钮的字符数组，将删除键放到最后，左下角放一个空按钮
+    // Define the character array for the keyboard buttons, put the delete key at the end, and place an empty button at the bottom left
     let keyboardCharacters = [
         ["1", ""],
         ["2", "abc"],
@@ -226,39 +233,39 @@ class ViewController: UIViewController, UICollectionViewDataSource, UICollection
         ["*", ""],
         ["0", "+"],
         ["#", ""],
-        ["", ""], // 左下角空按钮
+        ["", ""], // Empty button at the bottom left
         ["Call", ""],
         ["⌫", ""]
     ]
 
-    // 定义简化键盘按钮的字符数组，先初始化为空
+    // Define the character array for the simplified keyboard buttons, initially set to empty
     var simplifiedKeyboardCharacters: [[String]] = []
 
-    // 定义联系人数组
+    // Define the array of contacts
     var contacts: [CNContact] = []
     var filteredContacts: [CNContact] = []
 
-    // 缓存联系人的相关信息
+    // Cache relevant information of contacts
     var contactCaches: [CNContact: ContactCache] = [:]
 
-    // 定义输入的 T9 数字字符串
+    // Define the input T9 digit string
     var t9Input = ""
 
-    // 定义集合视图（T9键盘）
+    // Define the collection view (T9 keyboard)
     private lazy var collectionView: UICollectionView = {
         let layout = UICollectionViewFlowLayout()
-        layout.minimumInteritemSpacing = 0 // 横向间距减少 10，这里设为 0
-        layout.minimumLineSpacing = 0 // 纵向间距设为最小
+        layout.minimumInteritemSpacing = 0 // Reduce the horizontal spacing by 10, set to 0 here
+        layout.minimumLineSpacing = 0 // Set the vertical spacing to the minimum
         let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
         collectionView.dataSource = self
         collectionView.delegate = self
         collectionView.register(UICollectionViewCell.self, forCellWithReuseIdentifier: "cell")
         collectionView.backgroundColor = .systemBackground
-        collectionView.showsVerticalScrollIndicator = false // 去掉纵向滚动条
+        collectionView.showsVerticalScrollIndicator = false // Remove the vertical scroll bar
         return collectionView
     }()
 
-    // 定义简化集合视图（简化键盘）
+    // Define the simplified collection view (simplified keyboard)
     private lazy var simplifiedCollectionView: UICollectionView = {
         let layout = UICollectionViewFlowLayout()
         layout.minimumInteritemSpacing = 0
@@ -272,7 +279,7 @@ class ViewController: UIViewController, UICollectionViewDataSource, UICollection
         return collectionView
     }()
 
-    // 定义表格视图（联系人列表）
+    // Define the table view (contact list)
     private lazy var tableView: UITableView = {
         let tableView = UITableView()
         tableView.dataSource = self
@@ -282,34 +289,34 @@ class ViewController: UIViewController, UICollectionViewDataSource, UICollection
         return tableView
     }()
 
-    // 定义显示输入 T9 数字的标签
+    // Define the label to display the input T9 digits
     private lazy var inputLabel: UILabel = {
         let label = UILabel()
         label.textAlignment = .center
-        label.font = UIFont.systemFont(ofSize: 32) // 增大字体大小，确保显示清晰
+        label.font = UIFont.systemFont(ofSize: 32) // Increase the font size to ensure clear display
         label.text = t9Input
         return label
     }()
 
-    // 初始化 PhoneNumberKit 实例
+    // Initialize the PhoneNumberKit instance
     let phoneNumberKit = PhoneNumberUtility()
 
-    // 标记是否显示简化键盘
+    // Flag to indicate whether the simplified keyboard is visible
     private var isSimplifiedKeyboardVisible = false
 
-    // 用于调整 inputLabel 底部约束的变量
+    // Variable to adjust the bottom constraint of the inputLabel
     private var inputLabelBottomConstraint: NSLayoutConstraint!
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        // 在这里初始化 simplifiedKeyboardCharacters
+        // Initialize simplifiedKeyboardCharacters here
         simplifiedKeyboardCharacters = Array(keyboardCharacters[12...])
         setupUI()
         loadContacts()
         setupGestureRecognizers()
     }
 
-    // 设置 UI 布局
+    // Set up the UI layout
     private func setupUI() {
         view.addSubview(collectionView)
         view.addSubview(simplifiedCollectionView)
@@ -321,14 +328,14 @@ class ViewController: UIViewController, UICollectionViewDataSource, UICollection
         tableView.translatesAutoresizingMaskIntoConstraints = false
         inputLabel.translatesAutoresizingMaskIntoConstraints = false
 
-        let buttonWidth = (view.bounds.width - 40) / 3 - 20 // 恢复按钮原始宽度
-        let buttonHeight = buttonWidth * 0.95 // 按钮高度
-        let numberOfRows = (keyboardCharacters.count + 2) / 3 // 计算行数
-        let collectionViewHeight = CGFloat(numberOfRows) * buttonHeight // collectionView 高度
+        let buttonWidth = (view.bounds.width - 40) / 3 - 20 // Restore the original button width
+        let buttonHeight = buttonWidth * 0.95 // Button height
+        let numberOfRows = (keyboardCharacters.count + 2) / 3 // Calculate the number of rows
+        let collectionViewHeight = CGFloat(numberOfRows) * buttonHeight // Height of the collectionView
         let simplifiedNumberOfRows = (simplifiedKeyboardCharacters.count + 2) / 3
         let simplifiedCollectionViewHeight = CGFloat(simplifiedNumberOfRows) * buttonHeight
 
-        // 计算左右需要增加的间距，使按钮往中间聚拢
+        // Calculate the additional spacing on the left and right to make the buttons converge towards the center
         let sideSpacing = (view.bounds.width - 40 - buttonWidth * 3) / 2
 
         inputLabelBottomConstraint = inputLabel.bottomAnchor.constraint(equalTo: collectionView.topAnchor, constant: -10)
@@ -342,24 +349,24 @@ class ViewController: UIViewController, UICollectionViewDataSource, UICollection
             inputLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 10),
             inputLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -10),
             inputLabelBottomConstraint,
-            inputLabel.heightAnchor.constraint(equalToConstant: 30), // 增加高度，确保有足够空间显示
+            inputLabel.heightAnchor.constraint(equalToConstant: 30), // Increase the height to ensure enough space for display
 
             collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20 + sideSpacing),
             collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20 - sideSpacing),
             collectionView.heightAnchor.constraint(equalToConstant: collectionViewHeight),
-            // 修改 collectionView 底部约束
+            // Modify the bottom constraint of the collectionView
             collectionView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -30 + buttonHeight),
 
             simplifiedCollectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20 + sideSpacing),
             simplifiedCollectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20 - sideSpacing),
-            simplifiedCollectionView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: 10),
+            simplifiedCollectionView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
             simplifiedCollectionView.heightAnchor.constraint(equalToConstant: simplifiedCollectionViewHeight)
         ])
 
         simplifiedCollectionView.isHidden = true
     }
 
-    // 加载联系人
+    // Load contacts
     private func loadContacts() {
         let store = CNContactStore()
         let stringKeys: [String] = [CNContactGivenNameKey, CNContactFamilyNameKey, CNContactPhoneNumbersKey]
@@ -371,7 +378,7 @@ class ViewController: UIViewController, UICollectionViewDataSource, UICollection
             do {
                 let fetchedContacts = try await store.fetchContacts(matching: request)
                 contacts = fetchedContacts.sorted { $0.givenName + $0.familyName < $1.givenName + $1.familyName }
-                // 缓存联系人信息
+                // Cache contact information
                 contactCaches = contacts.reduce(into: [:]) { cache, contact in
                     let givenPinyin = contact.givenName.toPinyin()
                     let familyPinyin = contact.familyName.toPinyin()
@@ -388,7 +395,7 @@ class ViewController: UIViewController, UICollectionViewDataSource, UICollection
         }
     }
 
-    // 搜索联系人
+    // Search for contacts
     private func searchContacts() {
         let input = t9Input
         if input.isEmpty {
@@ -403,12 +410,12 @@ class ViewController: UIViewController, UICollectionViewDataSource, UICollection
         }
         tableView.reloadData()
         inputLabel.text = t9Input
-        // 更新删除按钮的显示状态
+        // Update the display state of the delete button
         collectionView.reloadItems(at: [IndexPath(item: keyboardCharacters.count - 1, section: 0)])
         simplifiedCollectionView.reloadItems(at: [IndexPath(item: simplifiedKeyboardCharacters.count - 1, section: 0)])
     }
 
-    // 处理键盘按钮点击事件
+    // Handle keyboard button tap events
     private func handleButtonTap(_ character: String) {
         if character == "⌫" {
             if (t9Input.isEmpty == false) {
@@ -416,7 +423,7 @@ class ViewController: UIViewController, UICollectionViewDataSource, UICollection
             }
         } else if character == "Call" {
             let phoneNumber = inputLabel.text?.removeFormattingCharacters()
-            if let phoneNumber = phoneNumber, !phoneNumber.isEmpty {
+            if let phoneNumber = phoneNumber,!phoneNumber.isEmpty {
                 if let url = URL(string: "tel://\(phoneNumber)"), UIApplication.shared.canOpenURL(url) {
                     UIApplication.shared.open(url, options: [:], completionHandler: nil)
                 }
@@ -427,7 +434,7 @@ class ViewController: UIViewController, UICollectionViewDataSource, UICollection
         searchContacts()
     }
 
-    // UICollectionViewDataSource 方法
+    // UICollectionViewDataSource methods
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         if collectionView == self.collectionView {
             return keyboardCharacters.count
@@ -445,23 +452,23 @@ class ViewController: UIViewController, UICollectionViewDataSource, UICollection
 
         let characters = collectionView == self.collectionView ? keyboardCharacters : simplifiedKeyboardCharacters
         let mainChar = characters[indexPath.item][0]
-        let subChar = characters[indexPath.item][1].uppercased() // 使用大写字母
+        let subChar = characters[indexPath.item][1].uppercased() // Use uppercase letters
 
-        if (mainChar.isEmpty == true) {
-            button.isHidden = true // 隐藏左下角按钮
+        if mainChar.isEmpty {
+            button.isHidden = true // Hide the bottom left button
         } else if mainChar == "⌫" {
-            // 根据 t9Input 的状态控制删除按钮的显示与隐藏
+            // Control the display and hiding of the delete button based on the state of t9Input
             button.isHidden = t9Input.isEmpty
         }
 
         if (button.isHidden == false) {
             if mainChar == "Call" {
-                // 使用系统打电话图标
+                // Use the system call icon
                 let callImage = UIImage(systemName: "phone.fill")
                 button.setImage(callImage, for: .normal)
                 button.tintColor = .systemGreen
             } else {
-                let digitFontSize = 14 + 10 // 数字比字母大 10 个字号
+                let digitFontSize = 14 + 10 // The digit is 10 font sizes larger than the letters
                 let attributedString = NSMutableAttributedString(string: mainChar, attributes: [.font: UIFont.systemFont(ofSize: CGFloat(digitFontSize))])
                 if (subChar.isEmpty == false) {
                     attributedString.append(NSAttributedString(string: "\n\(subChar)", attributes: [
@@ -475,13 +482,13 @@ class ViewController: UIViewController, UICollectionViewDataSource, UICollection
                     ]))
                 }
                 button.setAttributedTitle(attributedString, for: .normal)
-                button.titleLabel?.numberOfLines = 0 // 允许多行显示
-                button.titleLabel?.textAlignment = .center // 确保文本居中显示
+                button.titleLabel?.numberOfLines = 0 // Allow multiple lines of display
+                button.titleLabel?.textAlignment = .center // Ensure the text is centered
                 button.setTitleColor(.label, for: .normal)
             }
             button.backgroundColor = .systemGray5
             button.layer.cornerRadius = button.bounds.width / 2
-            button.isUserInteractionEnabled = true // 确保按钮可交互
+            button.isUserInteractionEnabled = true // Ensure the button is interactive
             button.addTarget(self, action: #selector(buttonTapped(_:)), for: .touchUpInside)
         }
 
@@ -489,10 +496,10 @@ class ViewController: UIViewController, UICollectionViewDataSource, UICollection
         return cell
     }
 
-    // UICollectionViewDelegateFlowLayout 方法
+    // UICollectionViewDelegateFlowLayout methods
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
         if collectionView == self.collectionView {
-            // 恢复按钮原始宽度
+            // Restore the original button width
             let width = (collectionView.bounds.width) / 3 - 20
             return CGSize(width: width, height: width)
         } else {
@@ -501,11 +508,11 @@ class ViewController: UIViewController, UICollectionViewDataSource, UICollection
         }
     }
 
-    // 处理按钮点击事件
+    // Handle button tap events
     @objc private func buttonTapped(_ sender: UIButton) {
         if let attributedTitle = sender.attributedTitle(for: .normal) {
             let mutableAttributedTitle = NSMutableAttributedString(attributedString: attributedTitle)
-            // 移除换行符及后面的内容，只保留主字符
+            // Remove the line break and the content after it, only keep the main character
             if let range = mutableAttributedTitle.string.range(of: "\n") {
                 mutableAttributedTitle.deleteCharacters(in: NSRange(range.lowerBound..., in: mutableAttributedTitle.string))
             }
@@ -516,7 +523,7 @@ class ViewController: UIViewController, UICollectionViewDataSource, UICollection
         }
     }
 
-    // UITableViewDataSource 方法
+    // UITableViewDataSource methods
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return filteredContacts.count
     }
@@ -540,27 +547,27 @@ class ViewController: UIViewController, UICollectionViewDataSource, UICollection
         return cell
     }
 
-    // UITableViewDelegate 方法
+    // UITableViewDelegate methods
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         let contact = filteredContacts[indexPath.row]
         let contactViewController = CNContactViewController(for: contact)
         contactViewController.allowsActions = true
         contactViewController.displayedPropertyKeys = [CNContactGivenNameKey, CNContactFamilyNameKey, CNContactPhoneNumbersKey]
-        contactViewController.delegate = self // 设置代理
-        // 添加取消按钮
+        contactViewController.delegate = self // Set the delegate
+        // Add a cancel button
         let cancelButton = UIBarButtonItem(barButtonSystemItem: .cancel, target: self, action: #selector(cancelButtonTapped))
         contactViewController.navigationItem.leftBarButtonItem = cancelButton
         let navigationController = UINavigationController(rootViewController: contactViewController)
         present(navigationController, animated: true, completion: nil)
     }
 
-    // ContactCellDelegate 方法
+    // ContactCellDelegate methods
     func didTapName(contact: CNContact) {
         let contactViewController = CNContactViewController(for: contact)
         contactViewController.allowsActions = true
         contactViewController.displayedPropertyKeys = [CNContactGivenNameKey, CNContactFamilyNameKey, CNContactPhoneNumbersKey]
-        contactViewController.delegate = self // 设置代理
-        // 添加取消按钮
+        contactViewController.delegate = self // Set the delegate
+        // Add a cancel button
         let cancelButton = UIBarButtonItem(barButtonSystemItem: .cancel, target: self, action: #selector(cancelButtonTapped))
         contactViewController.navigationItem.leftBarButtonItem = cancelButton
         let navigationController = UINavigationController(rootViewController: contactViewController)
@@ -578,12 +585,12 @@ class ViewController: UIViewController, UICollectionViewDataSource, UICollection
         return filteredContacts[safe: indexPath.row]
     }
 
-    // 取消按钮点击事件处理
+    // Handle the cancel button tap event
     @objc private func cancelButtonTapped() {
         dismiss(animated: true, completion: nil)
     }
 
-    // 设置手势识别器
+    // Set up gesture recognizers
     private func setupGestureRecognizers() {
         let swipeDownGesture = UISwipeGestureRecognizer(target: self, action: #selector(handleSwipeDownGesture))
         swipeDownGesture.direction = .down
@@ -594,43 +601,43 @@ class ViewController: UIViewController, UICollectionViewDataSource, UICollection
         simplifiedCollectionView.addGestureRecognizer(swipeUpGesture)
     }
 
-    // 处理向下滑动手势
+    // Handle the downward swipe gesture
     @objc private func handleSwipeDownGesture() {
         showSimplifiedKeyboard()
     }
 
-    // 显示简化键盘
+    // Show the simplified keyboard
     private func showSimplifiedKeyboard() {
         isSimplifiedKeyboardVisible = true
         collectionView.isHidden = true
-        collectionView.alpha = 0 // 确保完全隐藏
+        collectionView.alpha = 0 // Ensure it is completely hidden
         simplifiedCollectionView.isHidden = false
-        simplifiedCollectionView.alpha = 1 // 确保完全显示
+        simplifiedCollectionView.alpha = 1 // Ensure it is completely visible
 
-        let buttonWidth = (view.bounds.width - 40) / 3 - 20 // 恢复按钮原始宽度
-        let buttonHeight = buttonWidth * 0.95 // 按钮高度
-        let rowsToRemove = 3 // 根据实际情况调整
+        let buttonWidth = (view.bounds.width - 40) / 3 - 20 // Restore the original button width
+        let buttonHeight = buttonWidth * 0.95 // Button height
+        let rowsToRemove = 3 // Adjust according to the actual situation
         let heightToMoveDown = CGFloat(rowsToRemove) * buttonHeight
 
-        // 调整 inputLabel 底部约束，确保不会出现布局冲突
-//        let minConstant = -10 // 最小约束值
+        // Adjust the bottom constraint of the inputLabel to ensure no layout conflicts occur
+//        let minConstant = -10 // Minimum constraint value
 //        let newConstant = -heightToMoveDown - 10
-        inputLabelBottomConstraint.constant = heightToMoveDown+20//max(newConstant, CGFloat(minConstant))
+        inputLabelBottomConstraint.constant = heightToMoveDown + 20//max(newConstant, CGFloat(minConstant))
 
         UIView.animate(withDuration: 0.3) {
             self.view.layoutIfNeeded()
         }
     }
 
-    // 显示完整 T9 键盘
+    // Show the full T9 keyboard
     private func showFullKeyboard() {
         isSimplifiedKeyboardVisible = false
         collectionView.isHidden = false
-        collectionView.alpha = 1 // 确保完全显示
+        collectionView.alpha = 1 // Ensure it is completely visible
         simplifiedCollectionView.isHidden = true
-        simplifiedCollectionView.alpha = 0 // 确保完全隐藏
+        simplifiedCollectionView.alpha = 0 // Ensure it is completely hidden
 
-        // 恢复 inputLabel 底部约束
+        // Restore the bottom constraint of the inputLabel
         inputLabelBottomConstraint.constant = -10
 
         UIView.animate(withDuration: 0.3) {
@@ -638,16 +645,16 @@ class ViewController: UIViewController, UICollectionViewDataSource, UICollection
         }
     }
 
-    // 处理向上滑动手势
+    // Handle the upward swipe gesture
     @objc private func handleSwipeUpGesture() {
         showFullKeyboard()
     }
 }
 
-// 实现 CNContactViewControllerDelegate 协议
+// Implement the CNContactViewControllerDelegate protocol
 extension ViewController: CNContactViewControllerDelegate {
     func contactViewController(_ viewController: CNContactViewController, didCompleteWith contact: CNContact?) {
-        // 关闭联系人信息界面
+        // Close the contact information interface
         viewController.navigationController?.dismiss(animated: true, completion: nil)
     }
 }
